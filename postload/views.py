@@ -5,19 +5,18 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from package.ReadFileFromMemory.ReadFile import ReadFile
+from package import CustomJoins, ReadFields, ReadFile
 
 # Create your views here.
 
 
 class ReconUser(APIView):
     def post(self, request, format=None):
-        targetFiles = request.FILES.getlist('target')
-
         sourceFiles = ReadFile(
             inMemoryFileList=request.FILES.getlist('source'))
 
-        sourceFields: dict = json.loads(request.data['sourceFields'])
+        sourceFields = ReadFields(request, "sourceFields")
+
         joins: dict = json.loads(request.POST['joins'])
         sourceJoins = joins['sourceJoins']
 
@@ -27,15 +26,15 @@ class ReconUser(APIView):
             file_idx = idx + 1
             left_on = sourceJoins['joinOn'][idx]['leftOn']
             right_on = sourceJoins['joinOn'][idx]['rightOn']
-            print(sourceJoins['fileOrder'][0])
-            file1 = pd.read_excel(sourceFiles.getFile(
-                sourceJoins['fileOrder'][0]))
-            file2 = pd.read_excel(sourceFiles.getFile(
-                sourceJoins['fileOrder'][1]))
 
-            result = pd.merge(file1, file2, left_on=left_on,
-                              right_on=right_on, how=join)
-            joinResult['result'] = result
+            file1 = sourceJoins['fileOrder'][0]
+            file2 = sourceJoins['fileOrder'][1]
+
+            cj = CustomJoins(sourceFields)
+            cj.read_two_table(sourceFiles.getFile(file1),
+                              sourceFiles.getFile(file2))
+            cj.do_joining(right_on=right_on, left_on=left_on, how=join)
+            joinResult[join] = cj.get_joined_table()
 
         var = {}
 

@@ -1,3 +1,4 @@
-from Base import RequestToDict
-from ReadFields import ReadFields
-from ReadFileFromMemory import ReadFile
+from .ReadFields import ReadFields
+from .ReadFileFromMemory import ReadFile
+
+from .CustomJoins import CustomJoins

@@ -15,10 +15,10 @@ class ReadFields(ReqToDict):
 
         for key in fields.keys():
             self.__req_cols[key] = [
-                val for val in fields[key].keys() if fields[key][val].RF == True]
+                val for val in fields[key].keys() if fields[key][val]["RF"] == True]
             self.__all_cols[key] = [val for val in fields[key].keys()]
             self.__all_pk[key] = [
-                val for val in fields[key].keys() if fields[key][val].PK == True]
+                val for val in fields[key].keys() if fields[key][val]["PK"] == True]
 
     def get_req_cols(self, fileName: str) -> list:
         return self.__req_cols[fileName]

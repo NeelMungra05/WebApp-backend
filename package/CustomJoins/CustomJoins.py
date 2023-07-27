@@ -21,9 +21,10 @@ class CustomJoins:
         self.__table2 = None
 
     def __read_table(self, file: InMemoryUploadedFile) -> pd.DataFrame:
+        print(file)
         cols: list[str] = self.__fields.get_req_cols(
             fileName=file.name)
-        return pd.DataFrame(file, columns=cols)
+        return pd.read_excel(file, usecols=cols)
 
     def read_two_table(self, file1: InMemoryUploadedFile, file2: InMemoryUploadedFile) -> None:
         self.__table1 = self.__read_table(file1)
