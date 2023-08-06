@@ -10,15 +10,21 @@ from package import ReqToDict
 class Reconciliation(ReqToDict):
 
     __summary_fields: list[str] = [
-        "Fields", "Total Count", "MatchCount", "Mismatch Count"]
+        "Fields", "Total Count", "Match Count", "Mismatch Count"]
 
     def __init__(self, request: HttpRequest, attr: str) -> None:
         super().__init__(request, attr)
         self.source_pk: list[str] = self.result.get('source', [])
         self.target_pk: list[str] = self.result.get('target', [])
+        self.source_order: list[str] = self.result.get('sourceOrder', [])
+        self.target_order: list[str] = self.result.get('targetOrder', [])
 
     def __add_prefix_to_dataframe(self, df: pd.DataFrame, prefix: str) -> pd.DataFrame:
         return df.add_prefix(prefix)
+
+    def __match_cols_for_recon(self, df: pd.DataFrame, source: bool) -> pd.DataFrame:
+        order: list[str] = self.source_order if source else self.target_order
+        return df[order]
 
     def __add_prefix_to_list(self, lst: list[str], prefix: str) -> list[str]:
         return [prefix+val for val in lst]
@@ -42,17 +48,15 @@ class Reconciliation(ReqToDict):
 
         result_df.fillna('', inplace=True)
 
+        print(result_df)
+
         return result_df
 
     def __create_match_cols(self, df: pd.DataFrame, src_cols: list[str], trgt_cols: list[str], match_cols: list[str]) -> pd.DataFrame:
         for i, j, k in zip(match_cols, src_cols, trgt_cols):
-
-            if df[j].dtype == str:
-                df[j] = df[k].str.strip()
-
-            if df[k].dtype == str:
-                df[k] = df[k].str.strip()
-
+            df[j] = df[j].astype(str).str.strip()
+            df[k] = df[k].astype(str).str.strip()
+            print(k, " ", j)
             df[i] = np.where(df[j] == df[k], 'True', 'False')
 
         return df
@@ -72,17 +76,21 @@ class Reconciliation(ReqToDict):
         summary: pd.DataFrame = pd.DataFrame(columns=self.__summary_fields)
 
         summary['Fields'] = cols_name
-        summary['Match Count'] = df[cols_name].apply(
-            lambda x: x.value_count().get('True', 0), axis=1)
-        summary['Mismatch Count'] = df[cols_name].apply(
-            lambda x: x.value_count().get('False', 0), axis=1)
-        summary['Total Count'] = df.count()
+        summary['Match Count'] = [df[field].eq(
+            'True').sum() for field in cols_name]
+        summary['Mismatch Count'] = [df[field].eq(
+            'False').sum() for field in cols_name]
+        summary['Total Count'] = summary['Match Count'] + \
+            summary['Mismatch Count']
 
         return summary
 
     def postload(self, source: pd.DataFrame, target: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if not self.__check_dataframe_is_unique(source, self.source_pk) and not self.__check_dataframe_is_unique(target, self.target_pk):
             raise Exception("Primary key is not unique")
+
+        source = self.__match_cols_for_recon(source, True)
+        target = self.__match_cols_for_recon(target, False)
 
         match_col_source = self.__add_prefix_to_list(
             source.columns.to_list(), "Match_")
