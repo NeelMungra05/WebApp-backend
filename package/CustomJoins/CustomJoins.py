@@ -8,11 +8,12 @@ from package.ReadFields.ReadFields import ReadFields
 
 
 class CustomJoins:
-    __df: pd.DataFrame | None
-    __table1: pd.DataFrame | None
-    __table2: pd.DataFrame | None
 
     def __init__(self, fields: ReadFields) -> None:
+
+        self.__df: pd.DataFrame | None
+        self.__table1: pd.DataFrame | None
+        self.__table2: pd.DataFrame | None
         self.__fields: ReadFields = fields
         self.__df = None
 

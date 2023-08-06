@@ -4,12 +4,12 @@ from package.Base.RequestToDict import ReqToDict
 
 
 class ReadFields(ReqToDict):
-    __req_cols: dict[str, list] = {}
-    __all_cols: dict[str, list] = {}
-    __all_pk: dict[str, list] = {}
-
     def __init__(self, request: HttpRequest, attr: str) -> None:
         super().__init__(request, attr)
+
+        self.__req_cols: dict[str, list] = {}
+        self.__all_cols: dict[str, list] = {}
+        self.__all_pk: dict[str, list] = {}
 
         fields: dict = self.result
 

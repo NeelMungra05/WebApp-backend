@@ -11,10 +11,10 @@ Join = Dict[str, List[Union[str, Dict[str, List[str]]]]]
 
 class JoinProcess(ReqToDict):
 
-    __joins: Join
-
     def __init__(self, request: HttpRequest, attr: str, joinType: Literal["sourceJoins", "targetJoins"]) -> None:
         super().__init__(request, attr)
+
+        self.__joins: Join
         self.__joins = self.result[joinType]
         self.joinsResult: pd.DataFrame
 
@@ -22,6 +22,13 @@ class JoinProcess(ReqToDict):
         return [item for item in data if isinstance(item, str)]
 
     def perform_operation(self, files: ReadFile, fields: ReadFields) -> None:
+        fileCount: int = files.getFileCount()
+        print(fileCount)
+        if fileCount == 1:
+            self.joinsResult = pd.read_excel(files.getFileByIdx(0))
+            print(self.joinsResult)
+            return
+
         joinType: list[str] = self.__extract_lst_str(self.__joins['joinType'])
 
         fileOrder = cast(List[str], self.__joins['fileOrder']) if isinstance(
