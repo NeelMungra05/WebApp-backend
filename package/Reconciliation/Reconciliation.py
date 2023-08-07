@@ -14,8 +14,10 @@ class Reconciliation(ReqToDict):
 
     def __init__(self, request: HttpRequest, attr: str) -> None:
         super().__init__(request, attr)
-        self.source_pk: list[str] = self.result.get('source', [])
-        self.target_pk: list[str] = self.result.get('target', [])
+        self.src_to_trgt: pd.DataFrame
+        self.trgt_to_src: pd.DataFrame
+        self.source_pk: list[str] = self.result.get('sourcePK', [])
+        self.target_pk: list[str] = self.result.get('targetPK', [])
         self.source_order: list[str] = self.result.get('sourceOrder', [])
         self.target_order: list[str] = self.result.get('targetOrder', [])
 
@@ -72,6 +74,9 @@ class Reconciliation(ReqToDict):
 
         return df[final_order]
 
+    # def __take_kpis_cols(self,df:pd.DataFrame,isSource:bool,match_cols:list[str]) -> None:
+    #     kds_cols :list[str] = [ for cols in match_cols]
+
     def __create_summary(self, cols_name: list[str], df: pd.DataFrame) -> pd.DataFrame:
         summary: pd.DataFrame = pd.DataFrame(columns=self.__summary_fields)
 
@@ -125,4 +130,23 @@ class Reconciliation(ReqToDict):
         summary_trgt_to_src = self.__create_summary(
             match_col_target, recon_trgt_to_src)
 
+        self.src_to_trgt = summary_src_to_trgt
+        self.trgt_to_src = summary_trgt_to_src
+
         return summary_src_to_trgt, summary_trgt_to_src
+
+    def kpis(self) -> dict[str, list[float]]:
+        src_trgt_total_true_cnt: int = self.src_to_trgt['Match Count'].sum(
+            axis=0)
+        src_trgt_total_cnt: int = self.src_to_trgt['Total Count'].sum(axis=0)
+
+        trgt_src_total_true_cnt: int = self.trgt_to_src['Match Count'].sum(
+            axis=0)
+        trgt_src_total_cnt: int = self.trgt_to_src['Total Count'].sum(axis=0)
+
+        src_trgt_recon_prct: float = (
+            src_trgt_total_true_cnt/src_trgt_total_cnt)*100
+        trgt_src_recon_prct: float = (
+            trgt_src_total_true_cnt/trgt_src_total_cnt)*100
+
+        return {"src_trgt": [src_trgt_recon_prct], "trgt_src": [trgt_src_recon_prct]}

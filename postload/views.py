@@ -30,4 +30,6 @@ class ReconUser(APIView):
         recon = Reconciliation(request, "reconJoin")
         s_vs_t, t_vs_s = recon.postload(sourceResult, targetResult)
 
-        return Response({"source vs target": s_vs_t, "target vs source": t_vs_s})
+        kpis = recon.kpis()
+
+        return Response({"source vs target": s_vs_t, "target vs source": t_vs_s, "kpis": kpis})
