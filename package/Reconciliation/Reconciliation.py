@@ -16,6 +16,12 @@ class Reconciliation(ReqToDict):
         super().__init__(request, attr)
         self.src_to_trgt: pd.DataFrame
         self.trgt_to_src: pd.DataFrame
+        self.src_kds: list[str]
+        self.trgt_kds: list[str]
+        self.src_text: list[str]
+        self.trgt_text: list[str]
+        self.src_num: list[str]
+        self.trgt_num: list[str]
         self.source_pk: list[str] = self.result.get('sourcePK', [])
         self.target_pk: list[str] = self.result.get('targetPK', [])
         self.source_order: list[str] = self.result.get('sourceOrder', [])
@@ -74,8 +80,29 @@ class Reconciliation(ReqToDict):
 
         return df[final_order]
 
-    # def __take_kpis_cols(self,df:pd.DataFrame,isSource:bool,match_cols:list[str]) -> None:
-    #     kds_cols :list[str] = [ for cols in match_cols]
+    def __take_kpis_cols(self, df: pd.DataFrame, isSource: bool, match_cols: list[str], cols: list[str]) -> None:
+        kds_col: List[str] = []
+        text_col: List[str] = []
+        num_col: List[str] = []
+
+        for col, match_col in zip(cols, match_cols):
+            dtype = df[col].dtype
+
+            if dtype == str or dtype == object:
+                max_size: int = df[col].map(len).max()
+                kds_col.append(
+                    match_col) if max_size <= 20 else text_col.append(match_col)
+            else:
+                num_col.append(match_col)
+
+        if isSource:
+            self.src_kds = kds_col
+            self.src_text = text_col
+            self.src_num = num_col
+        else:
+            self.trgt_kds = kds_col
+            self.trgt_text = text_col
+            self.trgt_num = num_col
 
     def __create_summary(self, cols_name: list[str], df: pd.DataFrame) -> pd.DataFrame:
         summary: pd.DataFrame = pd.DataFrame(columns=self.__summary_fields)
@@ -106,6 +133,9 @@ class Reconciliation(ReqToDict):
 
         source_cols: list[str] = source.columns.tolist()
         target_cols: list[str] = target.columns.to_list()
+
+        self.__take_kpis_cols(source, True, match_col_source, source_cols)
+        self.__take_kpis_cols(target, False, match_col_target, target_cols)
 
         prfx_source_pk = self.__add_prefix_to_list(self.source_pk, "Source_")
         prfx_target_pk = self.__add_prefix_to_list(self.target_pk, "Target_")
@@ -144,9 +174,39 @@ class Reconciliation(ReqToDict):
             axis=0)
         trgt_src_total_cnt: int = self.trgt_to_src['Total Count'].sum(axis=0)
 
+        src_trgt_kds_true_cnt: int = self.src_to_trgt.loc[self.src_to_trgt['Fields'].isin(self.src_kds)]['Match Count'].sum(
+            axis=0)
+        trgt_src_kds_true_cnt: int = self.trgt_to_src.loc[self.trgt_to_src['Fields'].isin(self.trgt_kds)]['Match Count'].sum(
+            axis=0)
+
+        src_trgt_text_true_cnt: int = self.src_to_trgt.loc[self.src_to_trgt['Fields'].isin(
+            self.src_text)]['Match Count'].sum(axis=0)
+        trgt_src_text_true_cnt: int = self.trgt_to_src.loc[self.trgt_to_src['Fields'].isin(
+            self.trgt_text)]['Match Count'].sum(axis=0)
+
+        src_trgt_num_true_cnt: int = self.src_to_trgt.loc[self.src_to_trgt['Fields'].isin(
+            self.src_num)]['Match Count'].sum(axis=0)
+        trgt_src_num_true_cnt: int = self.trgt_to_src.loc[self.trgt_to_src['Fields'].isin(
+            self.trgt_num)]['Match Count'].sum(axis=0)
+
         src_trgt_recon_prct: float = (
             src_trgt_total_true_cnt/src_trgt_total_cnt)*100
         trgt_src_recon_prct: float = (
             trgt_src_total_true_cnt/trgt_src_total_cnt)*100
 
-        return {"src_trgt": [src_trgt_recon_prct], "trgt_src": [trgt_src_recon_prct]}
+        src_trgt_kds_prct: float = (
+            src_trgt_kds_true_cnt/src_trgt_total_cnt)*100
+        trgt_src_kds_prct: float = (
+            trgt_src_kds_true_cnt/trgt_src_total_cnt)*100
+
+        src_trgt_text_prct: float = (
+            src_trgt_text_true_cnt/src_trgt_total_cnt)*100
+        trgt_src_text_prct: float = (
+            trgt_src_text_true_cnt/trgt_src_total_cnt)*100
+
+        src_trgt_num_prct: float = (
+            src_trgt_num_true_cnt/src_trgt_total_cnt)*100
+        trgt_src_num_prct: float = (
+            trgt_src_num_true_cnt/trgt_src_total_cnt)*100
+
+        return {"src_trgt": [src_trgt_recon_prct, src_trgt_kds_prct, src_trgt_text_prct, src_trgt_num_prct], "trgt_src": [trgt_src_recon_prct, trgt_src_kds_prct, trgt_src_text_prct, trgt_src_num_prct]}
