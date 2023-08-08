@@ -140,6 +140,9 @@ class Reconciliation(ReqToDict):
         prfx_source_pk = self.__add_prefix_to_list(self.source_pk, "Source_")
         prfx_target_pk = self.__add_prefix_to_list(self.target_pk, "Target_")
 
+        source = source.astype(str)
+        target = target.astype(str)
+
         recon_src_to_trgt = self.__do_merging(
             source, target, prfx_source_pk, prfx_target_pk)
         recon_trgt_to_src = self.__do_merging(
