@@ -87,8 +87,8 @@ class Reconciliation(ReqToDict):
 
         for col, match_col in zip(cols, match_cols):
             dtype = df[col].dtype
-
             if dtype == str or dtype == object:
+                df[col] = df[col].fillna('')
                 max_size: int = df[col].map(len).max()
                 kds_col.append(
                     match_col) if max_size <= 20 else text_col.append(match_col)
