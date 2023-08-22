@@ -14,3 +14,11 @@ def source_files(request: HttpRequest) -> Response:
     files = s3Ops.get_source_files()
 
     return Response({"files": files}, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def target_files(request: HttpRequest) -> Response:
+    s3Ops = S3Operations()
+    files = s3Ops.get_target_files()
+
+    return Response({"files": files}, status=status.HTTP_200_OK)
