@@ -22,3 +22,17 @@ def target_files(request: HttpRequest) -> Response:
     files = s3Ops.get_target_files()
 
     return Response({"files": files}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def headers_info(request: HttpRequest) -> Response:
+    source_ops = S3Operations(request, "sourceFiles")
+    target_ops = S3Operations(request, "targetFiles")
+
+    source_headers = source_ops.get_headers()
+    target_headers = target_ops.get_headers()
+
+    return Response(
+        {"sourceHeaders": source_headers, "targetHeaders": target_headers},
+        status=status.HTTP_200_OK,
+    )
