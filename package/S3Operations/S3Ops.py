@@ -29,33 +29,33 @@ class S3Operations(ReqToDict):
             aws_access_key_id=ID, aws_secret_access_key=KEY, region_name=REGION
         )
 
-    def __get_files(self, bucket, prefix: str) -> list[str]:
-        file_lst: list[str] = [obj.key for obj in bucket.objects.filter(Prefix=prefix)]
+    def __get_files(self, bucket, prefix: str) -> list[dict[str, int | str]]:
+        file_lst: list[dict[str, int | str]] = [
+            {"name": obj.key, "size": obj.size}
+            for obj in bucket.objects.filter(Prefix=prefix)
+        ]
         # update_file_list: list[str] = [
         #     "".join(file.split("/")[2:]) for file in file_lst
         # ]
         return file_lst
 
-    def get_source_files(self) -> list[str]:
+    def get_source_files(self) -> list[dict[str, int | str]]:
         s3_client: ServiceResource = self.session.resource("s3")
-        bucket = s3_client.Bucket(self.bucket)
+        bucket = s3_client.Bucket(self.bucket)  # type: ignore
 
         return self.__get_files(bucket, "input/Source/")
 
-    def get_target_files(self) -> list[str]:
+    def get_target_files(self) -> list[dict[str, int | str]]:
         s3_client: ServiceResource = self.session.resource("s3")
-        bucket = s3_client.Bucket(self.bucket)
-
+        bucket = s3_client.Bucket(self.bucket)  # type:ignore
         return self.__get_files(bucket, "input/Target/")
 
-    def __read_files_from_s3(self, name: str, s3_client) -> list[str]:
+    def __read_files_from_s3(self, name: str, s3_client) -> pd.DataFrame:
         response = s3_client.get_object(Bucket=self.bucket, Key=name)
         io_data = response["Body"].read()
         df: DataFrame = pd.read_excel(BytesIO(io_data))
 
-        headers = df.columns.to_list()
-
-        return headers
+        return df
 
     def get_headers(self) -> dict[str, list]:
         s3_client = self.session.client("s3")
@@ -64,6 +64,17 @@ class S3Operations(ReqToDict):
 
         if self.__fileNames is not None:
             for file in self.__fileNames:
-                result[file] = self.__read_files_from_s3(file, s3_client)
+                result[file] = self.__read_files_from_s3(
+                    file, s3_client
+                ).columns.to_list()
+
+        return result
+
+    def read_files(self, name: str) -> pd.DataFrame:
+        s3_client = self.session.client("s3")
+
+        result: pd.DataFrame = pd.DataFrame()
+
+        result = self.__read_files_from_s3(name, s3_client)
 
         return result
