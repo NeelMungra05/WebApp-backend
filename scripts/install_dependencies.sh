@@ -3,5 +3,5 @@
 pip install virtualenv
 cd /var/www/non_prod_django
 virtualenv env
-env/Scripts/activate.sh
+source env/bin/activate
 pip install -r requirements.txt
