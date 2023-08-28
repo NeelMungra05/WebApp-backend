@@ -1,5 +1,5 @@
 asgiref==3.7.2
-black==23.7.0
+black
 boto3==1.28.31
 botocore==1.31.31
 certifi==2023.7.22
@@ -9,14 +9,14 @@ colorama==0.4.6
 Django==4.2.3
 django-cors-headers==4.2.0
 djangorestframework==3.14.0
-dparse==0.6.3
+dparse
 et-xmlfile==1.1.0
 idna==3.4
 jmespath==1.0.1
 mypy-extensions==1.0.0
 numpy==1.25.1
 openpyxl==3.1.2
-packaging==23.1
+packaging
 pandas==2.0.3
 pathspec==0.11.2
 platformdirs==3.10.0
@@ -28,7 +28,7 @@ requests==2.31.0
 ruamel.yaml==0.17.32
 ruamel.yaml.clib==0.2.7
 s3transfer==0.6.2
-safety==2.3.5
+safety
 six==1.16.0
 sqlparse==0.4.4
 tomli==2.0.1
