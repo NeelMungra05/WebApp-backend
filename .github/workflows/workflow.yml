@@ -1,0 +1,55 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: CI/CD Pipeline for Django on AWS
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  continuos-integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [10.x]
+    steps:
+    - name: Update
+      run: sudo apt update
+    - uses: actions/checkout@v3
+    - name: Use Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.node-version }}
+    - name: Installing dependencies
+      run: pip install -r requirements.txt
+    - name: Checking if application can be run or not
+      run: python manage.py runserver
+
+  continuos-deployment:
+    runs-on: ubuntu-latest
+    needs: [continuos-integration]
+    if: github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Configuring AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Create CodeDeploy Deployment
+        id: React_non_prod_deployment
+        env:
+          ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          REGION: ${{ secrets.AWS_REGION }}
+          BUCKET: ${{ secrets.BUCKET }}
+        run: |
+          aws deploy create-deployment \
+          --application-name non_prod_deploy \
+          --deployment-group-name non_prod_server_1 \
+          --deployment-config-name CodeDeployDefault.OneAtATime \
+          --github-location repository=${{ github.repository }},commitId=${{ github.sha}} \
