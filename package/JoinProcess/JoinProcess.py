@@ -5,6 +5,7 @@ import pandas as pd
 from rest_framework.request import Request
 from package import CustomJoins, ReadFields, ReqToDict
 from package.ReadFileFromMemory import ReadFile
+from package.S3Operations import S3Operations
 
 Join = Dict[str, List[Union[str, Dict[str, List[str]]]]]
 
@@ -18,6 +19,7 @@ class JoinProcess(ReqToDict):
     ) -> None:
         super().__init__(request, attr, "dict")
 
+        self.s3Ops = S3Operations()
         self.__joins: Join
         self.__joins = self.result[joinType] if isinstance(self.result, dict) else {}
         self.joinsResult: pd.DataFrame
@@ -29,7 +31,7 @@ class JoinProcess(ReqToDict):
         fileCount: int = files.getFileCount()
         print(fileCount)
         if fileCount == 1:
-            self.joinsResult = pd.read_excel(files.getFileByIdx(0))
+            self.joinsResult = self.s3Ops.read_files(files.getFileByIdx(0))
             print(self.joinsResult)
             return
 
