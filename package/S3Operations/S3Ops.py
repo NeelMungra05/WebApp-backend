@@ -6,19 +6,17 @@ import pandas as pd
 from boto3.resources.base import ServiceResource
 from django.conf import settings
 from pandas import DataFrame
-from rest_framework.request import HttpRequest
+from rest_framework.request import Request
 
 from package import ReqToDict
 
 
 class S3Operations(ReqToDict):
-    def __init__(
-        self, request: Optional[HttpRequest] = None, parmam: Optional[str] = None
-    ):
+    def __init__(self, request: Optional[Request] = None, parmam: Optional[str] = None):
         self.__fileNames: Optional[dict[str, list]] = None
         if request is not None and parmam is not None:
-            super().__init__(request, parmam)
-            self.__fileNames = self.result
+            super().__init__(request, parmam, "dict")
+            self.__fileNames = self.result if isinstance(self.result, dict) else {}
 
         ID = settings.ID
         KEY = settings.KEY
@@ -50,10 +48,12 @@ class S3Operations(ReqToDict):
         bucket = s3_client.Bucket(self.bucket)  # type:ignore
         return self.__get_files(bucket, "input/Target/")
 
-    def __read_files_from_s3(self, name: str, s3_client) -> pd.DataFrame:
+    def __read_files_from_s3(
+        self, name: str, s3_client, cols: Optional[list[str]] = None
+    ) -> pd.DataFrame:
         response = s3_client.get_object(Bucket=self.bucket, Key=name)
         io_data = response["Body"].read()
-        df: DataFrame = pd.read_excel(BytesIO(io_data))
+        df: DataFrame = pd.read_excel(BytesIO(io_data), usecols=cols)
 
         return df
 
@@ -70,11 +70,11 @@ class S3Operations(ReqToDict):
 
         return result
 
-    def read_files(self, name: str) -> pd.DataFrame:
+    def read_files(self, name: str, cols: Optional[list[str]] = None) -> pd.DataFrame:
         s3_client = self.session.client("s3")
 
         result: pd.DataFrame = pd.DataFrame()
 
-        result = self.__read_files_from_s3(name, s3_client)
+        result = self.__read_files_from_s3(name, s3_client, cols)
 
         return result

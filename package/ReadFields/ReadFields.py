@@ -1,24 +1,32 @@
 from django.http import HttpRequest
 
 from package.Base.RequestToDict import ReqToDict
+from rest_framework.request import Request
+from django.http import QueryDict
 
 
 class ReadFields(ReqToDict):
-    def __init__(self, request: HttpRequest, attr: str) -> None:
-        super().__init__(request, attr)
-
+    def __init__(self, request: Request, attr: str) -> None:
         self.__req_cols: dict[str, list] = {}
         self.__all_cols: dict[str, list] = {}
         self.__all_pk: dict[str, list] = {}
 
-        fields: dict = self.result
+        fields: dict = {}
+
+        super().__init__(request, attr, "dict")
+
+        fields = self.result if isinstance(self.result, dict) else {}
+
+        print(fields)
 
         for key in fields.keys():
             self.__req_cols[key] = [
-                val for val in fields[key].keys() if fields[key][val]["RF"] == True]
+                val for val in fields[key].keys() if fields[key][val]["RF"] == True
+            ]
             self.__all_cols[key] = [val for val in fields[key].keys()]
             self.__all_pk[key] = [
-                val for val in fields[key].keys() if fields[key][val]["PK"] == True]
+                val for val in fields[key].keys() if fields[key][val]["PK"] == True
+            ]
 
     def get_req_cols(self, fileName: str) -> list:
         return self.__req_cols[fileName]

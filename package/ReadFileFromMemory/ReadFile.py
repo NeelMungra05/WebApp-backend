@@ -1,27 +1,18 @@
-from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
+from rest_framework.request import Request
+from package.Base.RequestToDict import ReqToDict
 
 
-class ReadFile:
+class ReadFile(ReqToDict):
+    def __init__(self, request: Request, attr: str):
+        self.__fileList: list[str] = []
+        super().__init__(request, attr, "list")
 
-    def __init__(self, inMemoryFileList: list[UploadedFile]):
-        self.__fileMappingDict: dict = {}
+        self.__fileList = self.result if isinstance(self.result, list) else []
 
-        for f in inMemoryFileList:
-            f_name = f.name
-            self.__fileMappingDict[f_name] = f
-
-        print(self.__fileMappingDict)
-
-    def getFile(self, name: str) -> InMemoryUploadedFile:
-        keys = self.__fileMappingDict.keys()
-
-        if name not in keys:
-            raise FileNotFoundError(f"Not able to find given file name:{name}")
-        else:
-            return self.__fileMappingDict[name]
+        print(self.__fileList)
 
     def getFileCount(self) -> int:
-        return len(self.__fileMappingDict)
+        return len(self.__fileList)
 
-    def getFileByIdx(self, idx: int) -> InMemoryUploadedFile:
-        return self.__fileMappingDict[list(self.__fileMappingDict.keys())[idx]]
+    def getFileByIdx(self, idx: int) -> str:
+        return self.__fileList[idx]
