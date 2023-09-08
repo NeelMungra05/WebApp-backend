@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.request import HttpRequest
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from package.S3Operations import S3Operations
@@ -9,7 +9,7 @@ from package.S3Operations import S3Operations
 
 
 @api_view(["GET"])
-def source_files(request: HttpRequest) -> Response:
+def source_files(request: Request) -> Response:
     s3Ops = S3Operations()
     files = s3Ops.get_source_files()
 
@@ -17,7 +17,7 @@ def source_files(request: HttpRequest) -> Response:
 
 
 @api_view(["GET"])
-def target_files(request: HttpRequest) -> Response:
+def target_files(request: Request) -> Response:
     s3Ops = S3Operations()
     files = s3Ops.get_target_files()
 
@@ -25,7 +25,7 @@ def target_files(request: HttpRequest) -> Response:
 
 
 @api_view(["POST"])
-def headers_info(request: HttpRequest) -> Response:
+def headers_info(request: Request) -> Response:
     source_ops = S3Operations(request, "sourceFiles")
     target_ops = S3Operations(request, "targetFiles")
 
