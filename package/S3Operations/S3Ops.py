@@ -13,10 +13,10 @@ from package import ReqToDict
 
 class S3Operations(ReqToDict):
     def __init__(self, request: Optional[Request] = None, parmam: Optional[str] = None):
-        self.__fileNames: Optional[dict[str, list]] = None
+        self.__fileNames: Optional[list[str]] = None
         if request is not None and parmam is not None:
-            super().__init__(request, parmam, "dict")
-            self.__fileNames = self.result if isinstance(self.result, dict) else {}
+            super().__init__(request, parmam, "list")
+            self.__fileNames = self.result if isinstance(self.result, list) else []
 
         ID = settings.ID
         KEY = settings.KEY
