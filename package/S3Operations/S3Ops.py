@@ -57,6 +57,14 @@ class S3Operations(ReqToDict):
 
         return df
 
+    def __put_file_to_s3(self, name: str, buffer: BytesIO, s3_client) -> str:
+        try:
+            s3_client.put_object(Bucket=self.bucket, Key=name, Body=buffer.getvalue())
+        except Exception as e:
+            raise Exception("Error uploading the file")
+        else:
+            return "File saved successfully"
+
     def get_headers(self) -> dict[str, list]:
         s3_client = self.session.client("s3")
 
@@ -78,3 +86,12 @@ class S3Operations(ReqToDict):
         result = self.__read_files_from_s3(name, s3_client, cols)
 
         return result
+
+    def save_file(self, name: str, df: pd.DataFrame) -> str:
+        excel_buffer: BytesIO = BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+
+        s3_client = self.session.client("s3")
+
+        return self.__put_file_to_s3(name, excel_buffer, s3_client)
