@@ -29,10 +29,8 @@ class JoinProcess(ReqToDict):
 
     def perform_operation(self, files: ReadFile, fields: ReadFields) -> None:
         fileCount: int = files.getFileCount()
-        print(fileCount)
         if fileCount == 1:
             self.joinsResult = self.s3Ops.read_files(files.getFileByIdx(0))
-            print(self.joinsResult)
             return
 
         joinType: list[str] = self.__extract_lst_str(self.__joins["joinType"])

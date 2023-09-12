@@ -9,8 +9,6 @@ class ReadFile(ReqToDict):
 
         self.__fileList = self.result if isinstance(self.result, list) else []
 
-        print(self.__fileList)
-
     def getFileCount(self) -> int:
         return len(self.__fileList)
 

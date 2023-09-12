@@ -17,8 +17,6 @@ class ReadFields(ReqToDict):
 
         fields = self.result if isinstance(self.result, dict) else {}
 
-        print(fields)
-
         for key in fields.keys():
             self.__req_cols[key] = [
                 val for val in fields[key].keys() if fields[key][val]["RF"] == True

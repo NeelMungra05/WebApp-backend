@@ -22,7 +22,6 @@ class CustomJoins:
         self.__table2 = None
 
     def __read_table(self, file: str) -> pd.DataFrame:
-        print(file)
         cols: list[str] = self.__fields.get_req_cols(fileName=file)
         return self.__s3Ops.read_files(file, cols)
 
