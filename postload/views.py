@@ -29,7 +29,13 @@ class ReconUser(APIView):
         s_vs_t, t_vs_s = recon.postload(sourceResult, targetResult)
 
         kpis = recon.kpis()
+        msg: str = recon.save_files("src")
 
         return Response(
-            {"source vs target": s_vs_t, "target vs source": t_vs_s, "kpis": kpis}
+            {
+                "source vs target": s_vs_t,
+                "target vs source": t_vs_s,
+                "kpis": kpis,
+                "fileUploadStatus": msg,
+            }
         )
