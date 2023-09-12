@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from rest_framework.request import Request
 
+from package.S3Operations import S3Operations
 from package import ReqToDict
 
 
@@ -17,6 +18,7 @@ class Reconciliation(ReqToDict):
 
     def __init__(self, request: Request, attr: str) -> None:
         super().__init__(request, attr, "dict")
+        self.__s3Ops: S3Operations = S3Operations()
         self.src_to_trgt: pd.DataFrame
         self.trgt_to_src: pd.DataFrame
         self.src_kds: list[str]
@@ -74,8 +76,6 @@ class Reconciliation(ReqToDict):
 
         result_df.fillna("", inplace=True)
 
-        print(result_df)
-
         return result_df
 
     def __create_match_cols(
@@ -88,7 +88,6 @@ class Reconciliation(ReqToDict):
         for i, j, k in zip(match_cols, src_cols, trgt_cols):
             df[j] = df[j].astype(str).str.strip()
             df[k] = df[k].astype(str).str.strip()
-            print(k, " ", j)
             df[i] = np.where(df[j] == df[k], "True", "False")
 
         return df
@@ -261,3 +260,9 @@ class Reconciliation(ReqToDict):
                 trgt_src_num_prct,
             ],
         }
+
+    def save_files(self, type: Literal["src", "trgt"]) -> str:
+        df: pd.DataFrame = self.src_to_trgt if type == "src" else self.trgt_to_src
+        name: str = "src_trgt.xlsx" if type == "src" else "trgt_src.xlsx"
+
+        return self.__s3Ops.save_file(f"output/Output_{name}", df)
