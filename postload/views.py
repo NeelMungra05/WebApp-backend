@@ -1,4 +1,3 @@
-
 from django.http import HttpRequest
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,20 +9,18 @@ from package import JoinProcess, ReadFields, ReadFile, Reconciliation
 
 class ReconUser(APIView):
     def post(self, request: HttpRequest, format=None) -> Response:
-        sourceFiles = ReadFile(
-            request.FILES.getlist('source'))
+        sourceFiles = ReadFile(request.FILES.getlist("source"))
 
-        targetFiles = ReadFile(
-            request.FILES.getlist('target'))
+        targetFiles = ReadFile(request.FILES.getlist("target"))
 
         sourceFields = ReadFields(request, "sourceFields")
         targetFields = ReadFields(request, "targetFields")
 
-        sourceJoinsProcess = JoinProcess(request, "joins", 'sourceJoins')
+        sourceJoinsProcess = JoinProcess(request, "joins", "sourceJoins")
         sourceJoinsProcess.perform_operation(sourceFiles, sourceFields)
         sourceResult = sourceJoinsProcess.get_join_result()
 
-        targetJoinsProcess = JoinProcess(request, "joins", 'targetJoins')
+        targetJoinsProcess = JoinProcess(request, "joins", "targetJoins")
         targetJoinsProcess.perform_operation(targetFiles, targetFields)
         targetResult = targetJoinsProcess.get_join_result()
 
@@ -32,4 +29,15 @@ class ReconUser(APIView):
 
         kpis = recon.kpis()
 
-        return Response({"source vs target": s_vs_t, "target vs source": t_vs_s, "kpis": kpis})
+        src_kpis_list: list[str] = recon.get_all_kpis("src")
+        trgt_kpis_list: list[str] = recon.get_all_kpis("trgt")
+
+        return Response(
+            {
+                "source vs target": s_vs_t,
+                "target vs source": t_vs_s,
+                "kpis": kpis,
+                "src_kpis_list": src_kpis_list,
+                "trgt_kpis_list": trgt_kpis_list,
+            }
+        )
