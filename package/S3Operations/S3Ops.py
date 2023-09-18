@@ -23,12 +23,10 @@ class S3Operations:
 
     def get_source_files(self) -> list[str]:
         s3_client: ServiceResource = self.session.resource("s3")
-        bucket = s3_client.Bucket(self.bucket)
-
+        bucket = s3_client.Bucket(self.bucket)  # type: ignore
         return self.__get_files(bucket, "input/Source/")
 
     def get_target_files(self) -> list[str]:
         s3_client: ServiceResource = self.session.resource("s3")
-        bucket = s3_client.Bucket(self.bucket)
-
+        bucket = s3_client.Bucket(self.bucket)  # type: ignore
         return self.__get_files(bucket, "input/Target/")
