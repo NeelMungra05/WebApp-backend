@@ -32,12 +32,21 @@ class ReconUser(APIView):
         src_kpis_list: list[str] = recon.get_all_kpis("src")
         trgt_kpis_list: list[str] = recon.get_all_kpis("trgt")
 
-        return Response(
+        src_file = recon.get_files("src")
+        trgt_file = recon.get_files("trgt")
+
+        response: Response = Response(
             {
                 "source vs target": s_vs_t,
                 "target vs source": t_vs_s,
                 "kpis": kpis,
                 "src_kpis_list": src_kpis_list,
                 "trgt_kpis_list": trgt_kpis_list,
+                "src_file": src_file,
+                "trgt_file": trgt_file,
             }
         )
+
+        response["Content-Disposition"] = 'attachment; filename="data.csv"'
+
+        return response
