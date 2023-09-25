@@ -1,5 +1,6 @@
 from typing import List, Literal, Tuple
 
+import io
 import numpy as np
 import pandas as pd
 from django.http import HttpRequest
@@ -31,6 +32,8 @@ class Reconciliation(ReqToDict):
         self.target_pk: list[str] = self.result.get("targetPK", [])
         self.source_order: list[str] = self.result.get("sourceOrder", [])
         self.target_order: list[str] = self.result.get("targetOrder", [])
+        self.recon_src_trgt: pd.DataFrame = pd.DataFrame()
+        self.recon_trgt_src: pd.DataFrame = pd.DataFrame()
 
     def __add_prefix_to_dataframe(self, df: pd.DataFrame, prefix: str) -> pd.DataFrame:
         return df.add_prefix(prefix)
@@ -151,22 +154,59 @@ class Reconciliation(ReqToDict):
 
         return summary
 
-    def postload(
-        self, source: pd.DataFrame, target: pd.DataFrame
+    def __custom_format(
+        self,
+        pk: list[str],
+        df: pd.DataFrame,
+        match_col_names: list[str],
+        src_col_names: list[str],
+        trgt_col_names: list[str],
+        isSource: bool = True,
+    ) -> pd.DataFrame:
+        data_lst: list[list[str]] = []
+
+        for match_col, src_col, trgt_col in zip(
+            match_col_names, src_col_names, trgt_col_names
+        ):
+            data_row: pd.DataFrame = df[df[match_col] == "False"]
+
+            field: str = ""
+
+            if isSource == True:
+                data_row = data_row[[*pk, src_col, trgt_col]]
+                field = src_col
+            else:
+                data_row = data_row[[*pk, trgt_col, src_col]]
+                field = trgt_col
+
+            data_row_lst: list[str] = data_row.values.tolist()
+
+            for val in data_row_lst:
+                tmp: list[str] = [*val]
+                tmp.insert(-2, "_".join(field.split("_")[1:]).replace(".1", ""))
+                data_lst.append(tmp)
+        pk = ["_".join(val.split("_")[1:]).replace(".1", "") for val in pk]
+
+        output_df: pd.DataFrame = pd.DataFrame()
+
+        if isSource is True:
+            output_df = pd.DataFrame(
+                data_lst, columns=[*pk, "FIELD", "UPLOADED VALUE", "TABLE DUMP VALUE"]
+            )
+        else:
+            output_df = pd.DataFrame(
+                data_lst, columns=[*pk, "FIELD", "TABLE DUMP VALUE", "UPLOADED VALUE"]
+            )
+
+        return output_df
+
+    def __process_to_recon(
+        self,
+        source: pd.DataFrame,
+        target: pd.DataFrame,
+        match_col_source: list[str],
+        match_col_target: list[str],
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        if not self.__check_dataframe_is_unique(
-            source, self.source_pk
-        ) and not self.__check_dataframe_is_unique(target, self.target_pk):
-            raise Exception("Primary key is not unique")
-
-        source = self.__match_cols_for_recon(source, True)
-        target = self.__match_cols_for_recon(target, False)
-
-        match_col_source = self.__add_prefix_to_list(source.columns.to_list(), "Match_")
-        match_col_target = self.__add_prefix_to_list(target.columns.tolist(), "Match_")
-
-        source, target = self.__add_source_target_prefix(source, target)
-
         source_cols: list[str] = source.columns.tolist()
         target_cols: list[str] = target.columns.to_list()
 
@@ -203,10 +243,50 @@ class Reconciliation(ReqToDict):
         summary_src_to_trgt = self.__create_summary(match_col_source, recon_src_to_trgt)
         summary_trgt_to_src = self.__create_summary(match_col_target, recon_trgt_to_src)
 
+        self.recon_src_trgt = self.__custom_format(
+            prfx_source_pk,
+            recon_src_to_trgt,
+            match_col_source,
+            source_cols,
+            target_cols,
+            True,
+        )
+        self.recon_trgt_src = self.__custom_format(
+            prfx_target_pk,
+            recon_trgt_to_src,
+            match_col_target,
+            source_cols,
+            target_cols,
+            False,
+        )
+
+        print(self.recon_trgt_src.head())
+        print(self.recon_src_trgt.head())
+
         self.src_to_trgt = summary_src_to_trgt
         self.trgt_to_src = summary_trgt_to_src
 
         return summary_src_to_trgt, summary_trgt_to_src
+
+    def postload(
+        self, source: pd.DataFrame, target: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        if not self.__check_dataframe_is_unique(
+            source, self.source_pk
+        ) and not self.__check_dataframe_is_unique(target, self.target_pk):
+            raise Exception("Primary key is not unique")
+
+        source = self.__match_cols_for_recon(source, True)
+        target = self.__match_cols_for_recon(target, False)
+
+        match_col_source = self.__add_prefix_to_list(source.columns.to_list(), "Match_")
+        match_col_target = self.__add_prefix_to_list(target.columns.tolist(), "Match_")
+
+        source, target = self.__add_source_target_prefix(source, target)
+
+        return self.__process_to_recon(
+            source, target, match_col_source, match_col_target
+        )
 
     def kpis(self) -> dict[str, list[float]]:
         src_trgt_total_true_cnt: int = self.src_to_trgt["Match Count"].sum(axis=0)
@@ -269,3 +349,13 @@ class Reconciliation(ReqToDict):
 
     def get_all_kpis(self, type: Literal["src", "trgt"]) -> list[str]:
         return self.src_all_kpis_list if type == "src" else self.trgt_all_kpis_list
+
+    def get_files(self, type: Literal["src", "trgt"]) -> str:
+        csv_buffer: io.StringIO = io.StringIO()
+        df = self.recon_src_trgt if type == "src" else self.recon_trgt_src
+
+        df.to_csv(csv_buffer, index=False)
+
+        csv_file: str = csv_buffer.getvalue()
+
+        return csv_file
