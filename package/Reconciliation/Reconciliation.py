@@ -121,19 +121,25 @@ class Reconciliation(ReqToDict):
 
                 if max_size <= 20:
                     kds_col.append(match_col)
-                    self.src_all_kpis_list.append(
-                        "KDS"
-                    ) if isSource else self.trgt_all_kpis_list.append("KDS")
+                    (
+                        self.src_all_kpis_list.append("KDS")
+                        if isSource
+                        else self.trgt_all_kpis_list.append("KDS")
+                    )
                 else:
                     text_col.append(match_col)
-                    self.src_all_kpis_list.append(
-                        "TEXT"
-                    ) if isSource else self.trgt_all_kpis_list.append("TEXT")
+                    (
+                        self.src_all_kpis_list.append("TEXT")
+                        if isSource
+                        else self.trgt_all_kpis_list.append("TEXT")
+                    )
             else:
                 num_col.append(match_col)
-                self.src_all_kpis_list.append(
-                    "NUM"
-                ) if isSource else self.trgt_all_kpis_list.append("NUM")
+                (
+                    self.src_all_kpis_list.append("NUM")
+                    if isSource
+                    else self.trgt_all_kpis_list.append("NUM")
+                )
 
         if isSource:
             self.src_kds = kds_col
@@ -288,6 +294,18 @@ class Reconciliation(ReqToDict):
             source, target, match_col_source, match_col_target
         )
 
+    def __calculate_percentage(self, tru_cnt: int, total_cnt: int) -> float:
+        return (tru_cnt / total_cnt) * 100.00 if total_cnt != 0 else 0.0
+
+    def __calculate_metrics(self, df: pd.DataFrame, fields: list[str]) -> float:
+
+        true_cnt: int = df.loc[df["Fields"].isin(fields)]["Match Count"].sum(axis=0)
+        total_cnt: int = df.loc[df["Fields"].isin(fields)]["Total Count"].sum(axis=0)
+
+        field_prct: float = self.__calculate_percentage(true_cnt, total_cnt)
+
+        return field_prct
+
     def kpis(self) -> dict[str, list[float]]:
         src_trgt_total_true_cnt: int = self.src_to_trgt["Match Count"].sum(axis=0)
         src_trgt_total_cnt: int = self.src_to_trgt["Total Count"].sum(axis=0)
@@ -295,26 +313,26 @@ class Reconciliation(ReqToDict):
         trgt_src_total_true_cnt: int = self.trgt_to_src["Match Count"].sum(axis=0)
         trgt_src_total_cnt: int = self.trgt_to_src["Total Count"].sum(axis=0)
 
-        src_trgt_kds_true_cnt: int = self.src_to_trgt.loc[
-            self.src_to_trgt["Fields"].isin(self.src_kds)
-        ]["Match Count"].sum(axis=0)
-        trgt_src_kds_true_cnt: int = self.trgt_to_src.loc[
-            self.trgt_to_src["Fields"].isin(self.trgt_kds)
-        ]["Match Count"].sum(axis=0)
+        src_trgt_kds_prct: float = self.__calculate_metrics(
+            self.src_to_trgt, self.src_kds
+        )
+        trgt_src_kds_prct: float = self.__calculate_metrics(
+            self.trgt_to_src, self.trgt_kds
+        )
 
-        src_trgt_text_true_cnt: int = self.src_to_trgt.loc[
-            self.src_to_trgt["Fields"].isin(self.src_text)
-        ]["Match Count"].sum(axis=0)
-        trgt_src_text_true_cnt: int = self.trgt_to_src.loc[
-            self.trgt_to_src["Fields"].isin(self.trgt_text)
-        ]["Match Count"].sum(axis=0)
+        src_trgt_text_prct: float = self.__calculate_metrics(
+            self.src_to_trgt, self.src_text
+        )
+        trgt_src_text_prct: float = self.__calculate_metrics(
+            self.trgt_to_src, self.trgt_text
+        )
 
-        src_trgt_num_true_cnt: int = self.src_to_trgt.loc[
-            self.src_to_trgt["Fields"].isin(self.src_num)
-        ]["Match Count"].sum(axis=0)
-        trgt_src_num_true_cnt: int = self.trgt_to_src.loc[
-            self.trgt_to_src["Fields"].isin(self.trgt_num)
-        ]["Match Count"].sum(axis=0)
+        src_trgt_num_prct: float = self.__calculate_metrics(
+            self.src_to_trgt, self.src_num
+        )
+        trgt_src_num_prct: float = self.__calculate_metrics(
+            self.trgt_to_src, self.trgt_num
+        )
 
         src_trgt_recon_prct: float = (
             src_trgt_total_true_cnt / src_trgt_total_cnt
@@ -322,15 +340,6 @@ class Reconciliation(ReqToDict):
         trgt_src_recon_prct: float = (
             trgt_src_total_true_cnt / trgt_src_total_cnt
         ) * 100
-
-        src_trgt_kds_prct: float = (src_trgt_kds_true_cnt / src_trgt_total_cnt) * 100
-        trgt_src_kds_prct: float = (trgt_src_kds_true_cnt / trgt_src_total_cnt) * 100
-
-        src_trgt_text_prct: float = (src_trgt_text_true_cnt / src_trgt_total_cnt) * 100
-        trgt_src_text_prct: float = (trgt_src_text_true_cnt / trgt_src_total_cnt) * 100
-
-        src_trgt_num_prct: float = (src_trgt_num_true_cnt / src_trgt_total_cnt) * 100
-        trgt_src_num_prct: float = (trgt_src_num_true_cnt / trgt_src_total_cnt) * 100
 
         return {
             "src_trgt": [
